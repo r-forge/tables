@@ -32,11 +32,13 @@ cbind.tabular <- function(..., deparse.level = 1) {
 	if (is.null(x)) next
 	if (is.null(result)) {
 	    attrs <- attributes(x)
+	    rowLabels <- unname(unclass(attrs$rowLabels))
 	    result <- unclass(x)
 	    fmtlist <- attr(attrs$table, "fmtlist")
 	} else {	
 	    xattrs <- attributes(x)	
-	    if (nrow(result) != nrow(x) || !identical(attrs$rowLabels, xattrs$rowLabels) )
+	    xrowLabels <- unname(unclass(xattrs$rowLabels))
+	    if (nrow(result) != nrow(x) || !identical(rowLabels, xrowLabels) )
 		stop("Cannot cbind if tables have different rows")
 	    result <- cbind(result, unclass(x))
 
@@ -80,11 +82,13 @@ rbind.tabular <- function(..., deparse.level = 1) {
 	if (is.null(x)) next
 	if (is.null(result)) {
 	    attrs <- attributes(x)
+	    colLabels <- unclass(unname(attrs$colLabels))
 	    result <- unclass(x)
 	    fmtlist <- attr(attrs$table, "fmtlist")    
 	} else {
-	    xattrs <- attributes(x)	
-	    if (ncol(result) != ncol(x) || !identical(attrs$colLabels, xattrs$colLabels) )
+	    xattrs <- attributes(x)
+	    xcolLabels <- unclass(unname(xattrs$colLabels))
+	    if (ncol(result) != ncol(x) || !identical(colLabels, xcolLabels) )
 		stop("Cannot rbind if tables have different columns")
 	    result <- rbind(result, unclass(x))
 
@@ -196,13 +200,15 @@ colLabels <- function(x) {
 
 
 print.tabularLabels <- function(x, ...) {
+  orig <- x
   attrnames <- names(attributes(x))
   delnames <- setdiff(attrnames, c("dim", "dimnames"))
   attributes(x)[delnames] <- NULL
   x <- noquote(x)
-  class(x) <- setdiff(class(x), "tabularRowLabels")
+  oldClass(x) <- setdiff(oldClass(x), "tabularRowLabels")
   print(x, ...)
   cat(paste("Attributes: ", 
   	  paste(attrnames, collapse = ", "), "\n"))
+  invisible(orig)
 }
 

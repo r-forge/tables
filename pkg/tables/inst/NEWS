@@ -153,3 +153,7 @@
 
 0.9.8:
       All() didn't work with tibbles.  (Reported by Vincent Arel-Bundock.)
+      
+0.9.9:
+      rbind() failed in a complicated example, because the classes
+      or names of the column labels differed.
