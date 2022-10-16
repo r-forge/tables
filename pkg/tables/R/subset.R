@@ -32,12 +32,12 @@ cbind.tabular <- function(..., deparse.level = 1) {
 	if (is.null(x)) next
 	if (is.null(result)) {
 	    attrs <- attributes(x)
-	    rowLabels <- unname(unclass(attrs$rowLabels))
+	    rowLabels <- unclass(attrs$rowLabels)
 	    result <- unclass(x)
 	    fmtlist <- attr(attrs$table, "fmtlist")
 	} else {	
 	    xattrs <- attributes(x)	
-	    xrowLabels <- unname(unclass(xattrs$rowLabels))
+	    xrowLabels <- unclass(xattrs$rowLabels)
 	    if (nrow(result) != nrow(x) || !identical(rowLabels, xrowLabels) )
 		stop("Cannot cbind if tables have different rows")
 	    result <- cbind(result, unclass(x))
@@ -82,12 +82,12 @@ rbind.tabular <- function(..., deparse.level = 1) {
 	if (is.null(x)) next
 	if (is.null(result)) {
 	    attrs <- attributes(x)
-	    colLabels <- unclass(unname(attrs$colLabels))
+	    colLabels <- unclass(attrs$colLabels)
 	    result <- unclass(x)
 	    fmtlist <- attr(attrs$table, "fmtlist")    
 	} else {
 	    xattrs <- attributes(x)
-	    xcolLabels <- unclass(unname(xattrs$colLabels))
+	    xcolLabels <- unclass(xattrs$colLabels)
 	    if (ncol(result) != ncol(x) || !identical(colLabels, xcolLabels) )
 		stop("Cannot rbind if tables have different columns")
 	    result <- rbind(result, unclass(x))
@@ -162,7 +162,8 @@ colLabels <- function(x) {
   dim(colLabels) <- dim(origrows)
   for (k in seq_len(ncol(origcols))[-1])
     colLabels[, k] <- ifelse(origcols[, k] == origcols[, k-1], NA, colLabels[, k])
-  dimnames(colLabels) <- list(dimnames(origrows)[[1]], NULL)
+  if (!is.null(dimnames(origrows)))
+    dimnames(colLabels) <- list(dimnames(origrows)[[1]], NULL)
   
   justification <- a$justification
   a$justification <- justification[i, j, ..., drop = FALSE]
@@ -189,7 +190,8 @@ colLabels <- function(x) {
   dim(rowLabels) <- dim(origrows)
   for (k in seq_len(nrow(origrows))[-1])
     rowLabels[k,] <- ifelse(origrows[k,] == origrows[k-1,], NA, rowLabels[k,])
-  dimnames(rowLabels) <- list(NULL, dimnames(origrows)[[2]])
+  if (!is.null(dimnames(origrows)))
+    dimnames(rowLabels) <- list(NULL, dimnames(origrows)[[2]])
 
   justification <- a$justification
   a$justification <- justification[i, j, ..., drop = FALSE]
