@@ -958,6 +958,7 @@ B & 2  & $10$ & \textcolor{red}{$14.4$} & $2.836$ & $56.3$ & $7.889$ \\
 \bottomrule 
 \end{tabu}
 
+
 > latexTable(tabular((Species + 1) ~ (n = 1) + Format(digits = 2) * 
 +     (Sepal.Length + Sepal.Width) * (mean + sd), data = iris), 
 +     caption =  .... [TRUNCATED] 
