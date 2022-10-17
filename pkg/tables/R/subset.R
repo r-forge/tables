@@ -22,104 +22,137 @@
     x
 }
 
+argError <- function(i, msg) {
+  thecall <- sys.call(1)
+  stop(sprintf(msg, deparse(thecall[[2]]), deparse(thecall[[i+1]])),
+       call. = FALSE)
+}
+
 cbind.tabular <- function(..., deparse.level = 1) {
-    args <- list(...)
-    if (!length(args)) return(NULL)
-    result <- NULL
-    while (length(args)) {
-	x <- args[[1]]
-	args <- args[-1]
-	if (is.null(x)) next
-	if (is.null(result)) {
-	    attrs <- attributes(x)
-	    rowLabels <- unclass(attrs$rowLabels)
-	    result <- unclass(x)
-	    fmtlist <- attr(attrs$table, "fmtlist")
-	} else {	
-	    xattrs <- attributes(x)	
-	    xrowLabels <- unclass(xattrs$rowLabels)
-	    if (nrow(result) != nrow(x) || !identical(rowLabels, xrowLabels) )
-		stop("Cannot cbind if tables have different rows")
-	    result <- cbind(result, unclass(x))
-
-	    attrs$justification <- cbind(attrs$justification, xattrs$justification)
-	    attrs$dropcells <- cbind(attrs$dropcells, xattrs$dropcells)   
-	    attrs$formats <- cbind(attrs$formats, xattrs$formats + length(fmtlist))
-	    attrs$dim <- dim(result)
-	    attrs$dimnames <- dimnames(result)
-	
-	    fmtlist <- c(fmtlist, attr(xattrs$table, "fmtlist"))
-	    attrs$table <- c(attrs$table, xattrs$table)
-	
-	    # rowLabels are fine
-	
-	    colLabels <- attrs$colLabels
-	    cattrs <- attributes(colLabels)
-	    xcolLabels <- xattrs$colLabels
-	    xcattrs <- attributes(xcolLabels)
-	    colLabels <- cbind(colLabels, xcolLabels)
-	    cattrs$dim <- dim(colLabels)
-	    cattrs$dimnames <- dimnames(colLabels)
-	    cattrs$justification <- cbind(cattrs$justification, xcattrs$justification)
-
-	    attributes(colLabels) <- cattrs	
-	    attrs$colLabels <- colLabels
-	    attr(attrs$table, "fmtlist") <- fmtlist
-	}
+  args <- list(...)
+  if (!length(args)) return(NULL)
+  result <- NULL
+  i <- 0
+  while (length(args)) {
+    i <- i + 1
+    x <- args[[1]]
+    args <- args[-1]
+    if (is.null(x)) next
+    if (is.null(result)) {
+      attrs <- attributes(x)
+      rowLabels <- unclass(attrs$rowLabels)
+      result <- unclass(x)
+      fmtlist <- attr(attrs$table, "fmtlist")
+    } else {	
+      xattrs <- attributes(x)	
+      xrowLabels <- unclass(xattrs$rowLabels)
+      if (nrow(result) != nrow(x))
+        argError(i, sprintf("'%%s' has %d rows, '%%s' has %d rows"))
+      if (any(dim(rowLabels) != dim(xrowLabels), na.rm = TRUE))
+        argError(i, sprintf("row label dim is (%d, %d) in '%%s', (%d, %d) in '%%s'", 
+                       dim(rowLabels)[1], dim(rowLabels)[2], 
+                       dim(xrowLabels)[1], dim(xrowLabels)[2]))
+      if (any(rowLabels != xrowLabels, na.rm = TRUE))
+        argError(i, "row label entries differ in '%s' vs '%s'")
+      if (!identical(rowLabels, xrowLabels))
+        argError(i, "rowLabels differ in '%s' vs '%s'. Cannot cbind if tables have different rows")
+      
+      result <- cbind(result, unclass(x))
+      
+      attrs$justification <- cbind(attrs$justification, xattrs$justification)
+      attrs$dropcells <- cbind(attrs$dropcells, xattrs$dropcells)   
+      attrs$formats <- cbind(attrs$formats, xattrs$formats + length(fmtlist))
+      attrs$dim <- dim(result)
+      attrs$dimnames <- dimnames(result)
+      
+      fmtlist <- c(fmtlist, attr(xattrs$table, "fmtlist"))
+      attrs$table <- c(attrs$table, xattrs$table)
+      
+      # rowLabels are fine
+      
+      colLabels <- attrs$colLabels
+      cattrs <- attributes(colLabels)
+      xcolLabels <- xattrs$colLabels
+      xcattrs <- attributes(xcolLabels)
+      if (nrow(colLabels) != nrow(xcolLabels))
+        argError(i, sprintf("%d rows of colLabels in '%%s', %d in '%%s'",
+                            nrow(colLabels), nrow(xcolLabels)))
+      colLabels <- cbind(colLabels, xcolLabels)
+      cattrs$dim <- dim(colLabels)
+      cattrs$dimnames <- dimnames(colLabels)
+      cattrs$justification <- cbind(cattrs$justification, xcattrs$justification)
+      
+      attributes(colLabels) <- cattrs	
+      attrs$colLabels <- colLabels
+      attr(attrs$table, "fmtlist") <- fmtlist
     }
-    if (!is.null(result)) 
-	attributes(result) <- attrs
-    result
+  }
+  if (!is.null(result)) 
+    attributes(result) <- attrs
+  result
 }
 
 rbind.tabular <- function(..., deparse.level = 1) {
-    args <- list(...)
-    if (!length(args)) return(NULL)
-    result <- NULL
-    while (length(args)) {
-	x <- args[[1]]
-	args <- args[-1]	
-	if (is.null(x)) next
-	if (is.null(result)) {
-	    attrs <- attributes(x)
-	    colLabels <- unclass(attrs$colLabels)
-	    result <- unclass(x)
-	    fmtlist <- attr(attrs$table, "fmtlist")    
-	} else {
-	    xattrs <- attributes(x)
-	    xcolLabels <- unclass(xattrs$colLabels)
-	    if (ncol(result) != ncol(x) || !identical(colLabels, xcolLabels) )
-		stop("Cannot rbind if tables have different columns")
-	    result <- rbind(result, unclass(x))
-
-	    attrs$justification <- rbind(attrs$justification, xattrs$justification)
-	    attrs$dropcells <- rbind(attrs$dropcells, xattrs$dropcells)
-	    attrs$formats <- rbind(attrs$formats, xattrs$formats + length(fmtlist))
-	    attrs$dim <- dim(result)
-	    attrs$dimnames <- dimnames(result)
-	
-	    fmtlist <- c(fmtlist, attr(xattrs$table, "fmtlist"))
-	    attrs$table <- c(attrs$table, xattrs$table)
-	
-	    rowLabels <- attrs$rowLabels
-	    rattrs <- attributes(rowLabels)
-	    xrowLabels <- xattrs$rowLabels
-	    xrattrs <- attributes(xrowLabels)
-	    rowLabels <- rbind(rowLabels, xrowLabels)
-	    rattrs$dim <- dim(rowLabels)
-	    rattrs$dimnames <- dimnames(rowLabels)
-	    rattrs$justification <- rbind(rattrs$justification, xrattrs$justification)
-
-	    # colLabels are fine
-	
-	    attributes(rowLabels) <- rattrs	
-	    attrs$rowLabels <- rowLabels
-	    attr(attrs$table, "fmtlist") <- fmtlist
-	}
-    }	
-    if (!is.null(result)) 
-	attributes(result) <- attrs
-    result
+  args <- list(...)
+  if (!length(args)) return(NULL)
+  result <- NULL
+  i <- 0
+  while (length(args)) {
+    i <- i + 1
+    x <- args[[1]]
+    args <- args[-1]	
+    if (is.null(x)) next
+    if (is.null(result)) {
+      attrs <- attributes(x)
+      colLabels <- unclass(attrs$colLabels)
+      result <- unclass(x)
+      fmtlist <- attr(attrs$table, "fmtlist")    
+    } else {
+      xattrs <- attributes(x)
+      xcolLabels <- unclass(xattrs$colLabels)
+      if (ncol(result) != ncol(x))
+        argError(i, sprintf("'%%s' has %d cols, '%%s' has %d"))
+      if (any(dim(colLabels) != dim(xcolLabels), na.rm = TRUE))
+        argError(i, sprintf("col label dim is (%d, %d) in '%%s', (%d, %d) in '%%s'", 
+                       dim(colLabels)[1], dim(colLabels)[2], 
+                       dim(xcolLabels)[1], dim(xcolLabels)[2]))
+      if (any(colLabels != xcolLabels, na.rm = TRUE))
+        argError(i, "col label entries differ in '%s' vs '%s'")
+      if (!identical(colLabels, xcolLabels))
+        argError(i, "colLabels differ in '%s' vs '%s'. Cannot cbind if tables have different columns")
+      result <- rbind(result, unclass(x))
+      
+      attrs$justification <- rbind(attrs$justification, xattrs$justification)
+      attrs$dropcells <- rbind(attrs$dropcells, xattrs$dropcells)
+      attrs$formats <- rbind(attrs$formats, xattrs$formats + length(fmtlist))
+      attrs$dim <- dim(result)
+      attrs$dimnames <- dimnames(result)
+      
+      fmtlist <- c(fmtlist, attr(xattrs$table, "fmtlist"))
+      attrs$table <- c(attrs$table, xattrs$table)
+      
+      rowLabels <- attrs$rowLabels
+      rattrs <- attributes(rowLabels)
+      xrowLabels <- xattrs$rowLabels
+      xrattrs <- attributes(xrowLabels)
+      if (ncol(rowLabels) != ncol(xrowLabels))
+        argError(i, sprintf("%d columns of rowLabels in '%%s', %d in '%%s'",
+                       ncol(rowLabels), ncol(xrowLabels)))
+      rowLabels <- rbind(rowLabels, xrowLabels)
+      rattrs$dim <- dim(rowLabels)
+      rattrs$dimnames <- dimnames(rowLabels)
+      rattrs$justification <- rbind(rattrs$justification, xrattrs$justification)
+      
+      # colLabels are fine
+      
+      attributes(rowLabels) <- rattrs	
+      attrs$rowLabels <- rowLabels
+      attr(attrs$table, "fmtlist") <- fmtlist
+    }
+  }	
+  if (!is.null(result)) 
+    attributes(result) <- attrs
+  result
 }
 
 rowLabels <- function(x) {
